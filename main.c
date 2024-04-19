@@ -3,6 +3,9 @@
 #include <string.h>
 #include <windows.h>
 #include <conio.h>
+#include<time.h>
+#include<unistd.h>
+
 
 void admin();
 void login();
@@ -21,6 +24,7 @@ void add();
 void edit();
 void del();
 void about();
+void print_transaction_history();
 
 int verify(); //for verifying admin and user
 int chkacc();
@@ -29,6 +33,12 @@ COORD coord = {0, 0};
 int m,r; //m in main and r in record
 
 char id[20], password[15];
+
+struct transaction {
+    char type[15];  // "Deposit" or "Withdrawal"
+    double amount;
+    char date[20];  // Store date and time of transaction
+};
 
 struct record {
     char name[25];
@@ -39,7 +49,57 @@ struct record {
     char citiz[20];
     double blnc;
     char UserID[10];
+    char pass_word[40];
+    struct transaction transactions[5];
+    int transaction_index;
 } rec;
+
+
+
+void print_transaction_history() {
+    int account_number,h=0;
+    printf("Enter your account number: ");
+    scanf("%d", &account_number);
+
+    FILE *f;
+    f = fopen("record.bin", "rb");
+    if (f == NULL) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    struct record rec;
+    while (fread(&rec, sizeof(rec), 1, f)) {
+        if (rec.account == account_number) {
+            printf("Transaction History for Account Number %d:\n", rec.account);
+            printf("--------------------------------------------------\n");
+            printf("%-15s %-10s %-20s\n", "Type", "Amount", "Date");
+            printf("--------------------------------------------------\n");
+            for (int i = 0; i < rec.transaction_index; i++) {
+                printf("\n%-15s $%-9.2lf %-20s\n", rec.transactions[i].type, rec.transactions[i].amount, rec.transactions[i].date);
+            }
+            printf("--------------------------------------------------\n");
+            fclose(f);
+            printf("\n\n\n\n\n\n\\n\\n\n");
+            printf("Enter 1 to go back");
+            scanf("%d",&h);
+            if(h==1)
+            transaction();
+            else
+            print_transaction_history();
+
+
+
+            
+        }
+    }
+
+    printf("Account number not found.\n");
+    fclose(f);
+    sleep(3);
+    transaction();
+}
+
 
 void gotoxy(int a, int b) {
     coord.X = a;
@@ -278,7 +338,10 @@ void add() {
         for (r = 0; r < 10; r++) {
             rec.UserID[r] = rand() % 10;
         }
-	    //fwrite() = for writing binary data
+        
+        rec.transaction_index = 0;
+	    
+        //fwrite() = for writing binary data
         //This helps to write contents in a structure variable in the file and stores it in the variable rec.
         fwrite(&rec, sizeof(rec), 1, f);
         gotoxy(38, 17);
@@ -576,7 +639,7 @@ void transaction() {
     switch (a) {
         case 1:
             system("cls");
-            chkblnc();
+            print_transaction_history();
             break;
         case 2:
             system("cls");
@@ -655,6 +718,15 @@ void deposit() {
                 printf("Enter The Amount To Deposit : $ ");
                 scanf("%lf", &b);
                 rec.blnc += b;
+                
+                // Update transaction history
+                strcpy(rec.transactions[rec.transaction_index].type, "Deposit");
+                rec.transactions[rec.transaction_index].amount = b;
+                time_t now;
+                time(&now);
+                strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
+                rec.transaction_index++;
+                
                 fwrite(&rec, sizeof(rec), 1, y);
             }
         }
@@ -714,6 +786,15 @@ void withdrawl() {
                     gotoxy(44, 21);
                     printf("    CASH WITHDRAWAL SUCCESSFULL     ");
                 }
+                
+                // Update transaction history
+                strcpy(rec.transactions[rec.transaction_index].type, "Withdrawal");
+                rec.transactions[rec.transaction_index].amount = b;
+                time_t now;
+                time(&now);
+                strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
+                rec.transaction_index++;
+                
                 fwrite(&rec, sizeof(rec), 1, y);
             }
         }
