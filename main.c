@@ -3,9 +3,8 @@
 #include <string.h>
 #include <windows.h>
 #include <conio.h>
-#include<time.h>
-#include<unistd.h>
-
+#include <time.h>
+#include <unistd.h>
 
 void admin();
 void login();
@@ -24,23 +23,43 @@ void add();
 void edit();
 void del();
 void about();
-void print_transaction_history();
 
-int verify(); //for verifying admin and user
+void user_menu();
+void print_transaction_history(int ver_account);
+void option_user();
+void user_transaction();
+void user_name_search(int ver_account);
+void user_deposit(int ver_account);
+void chkblnc_user(char*id);
+void user_withdrawl(int ver_account);
+void user_chkblnc(int ver_account);
+void user_panel();
+void user_login();
+int check (int*user_id,int*tempID);
+void transfer();
+int check_userID_loan();
+
+int verify(); // for verifying admin and user
 int chkacc();
 
 COORD coord = {0, 0};
-int m,r; //m in main and r in record
+int m, r; // m in main and r in record
 
-char id[20], password[15];
+char id[20], password[15],input[15],loan_input[15];
+int user_id[10],loan_id[10];
+char user_pass[20];
+int ver_account =  0;
+int tempID[10],temp_loanID[10];
 
-struct transaction {
-    char type[15];  // "Deposit" or "Withdrawal"
+struct transaction
+{
+    char type[15]; // "Deposit" or "Withdrawal"
     double amount;
-    char date[20];  // Store date and time of transaction
+    char date[20]; // Store date and time of transaction
 };
 
-struct record {
+struct record
+{
     char name[25];
     int account;
     char phone[15];
@@ -48,67 +67,24 @@ struct record {
     char email[35];
     char citiz[20];
     double blnc;
-    char UserID[10];
+    char UserID[20];
     char pass_word[40];
-    struct transaction transactions[5];
+    struct transaction transactions[10];
     int transaction_index;
 } rec;
 
 
 
-void print_transaction_history() {
-    int account_number,h=0;
-    printf("Enter your account number: ");
-    scanf("%d", &account_number);
-
-    FILE *f;
-    f = fopen("record.bin", "rb");
-    if (f == NULL) {
-        printf("Error opening file.\n");
-        return;
-    }
-
-    struct record rec;
-    while (fread(&rec, sizeof(rec), 1, f)) {
-        if (rec.account == account_number) {
-            printf("Transaction History for Account Number %d:\n", rec.account);
-            printf("--------------------------------------------------\n");
-            printf("%-15s %-10s %-20s\n", "Type", "Amount", "Date");
-            printf("--------------------------------------------------\n");
-            for (int i = 0; i < rec.transaction_index; i++) {
-                printf("\n%-15s $%-9.2lf %-20s\n", rec.transactions[i].type, rec.transactions[i].amount, rec.transactions[i].date);
-            }
-            printf("--------------------------------------------------\n");
-            fclose(f);
-            printf("\n\n\n\n\n\n\\n\\n\n");
-            printf("Enter 1 to go back");
-            scanf("%d",&h);
-            if(h==1)
-            transaction();
-            else
-            print_transaction_history();
-
-
-
-            
-        }
-    }
-
-    printf("Account number not found.\n");
-    fclose(f);
-    sleep(3);
-    transaction();
-}
-
-
-void gotoxy(int a, int b) {
+void gotoxy(int a, int b)
+{
     coord.X = a;
     coord.Y = b;
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
-int main() {
-    system("color f4");
+int main()
+{
+    system("color 02");
     gotoxy(43, 4);
     printf(" WELCOME TO TBC BANKING SYSTEM ");
     gotoxy(50, 8);
@@ -120,73 +96,157 @@ int main() {
     gotoxy(44, 14);
     printf("Enter Your Choice .... ");
     scanf("%d", &m);
-    if (m != 1 && m != 2) {
-        system("cls");
-        main();
-    }
     system("CLS");
-    admin();
+
+    if (m == 1)
+        admin();
+    else if (m == 2)
+        user_panel();
+    else
+        main();
+
     return 0;
 }
 
-void admin() {
-    system("color f4");
+void admin()
+{
+    char i ;
+    system("color 02");
     gotoxy(43, 4);
     printf(" WELCOME TO TBC BANKING SYSTEM ");
     login();
-    if (verify() == 1) {
+    if (verify() == 1)
+    {
         if (m == 1)
             menu();
         else
-            transaction();
-    } else if (verify() == 0) {
+            main();
+    }
+    else if (verify() == 0)
+    {
         system("CLS");
         gotoxy(43, 16);
         printf("Incorrect Username / Password !!!!");
-        admin();
+        gotoxy(43,18);
+        printf("[0] ---> Return, [Any key] ---> Retry");
+
+        i = getch();
+        switch(i)
+        {
+            case '0':
+                system("CLS");
+                main();
+            default:
+                system("CLS");
+                admin();
+
+        }
+        
+    }
+}
+void user_panel()
+{
+    int i;
+    system("CLS");
+    gotoxy(43, 4);
+    printf(" WELCOME TO TBC BANKING SYSTEM ");
+    user_login(); // Prompt for login credentials
+    if (verify() == 1)
+    { // Verify the credentials
+        if (m == 2)
+        {                // Check if it's the user panel
+            user_menu(); // If verified and m=2, proceed to the user menu
+            return;      // Return to avoid further execution of unnecessary code
+        }
+        else
+        {
+            main(); // If verified but m is not 2, go back to main menu
+            return; // Return to avoid further execution of unnecessary code
+        }
+    }
+    if(verify() == 0)
+    {
+        system("CLS");
+        printf("User does not exist\n");
+        printf("Enter 0 to Exit or 1 to relogin ");
+        i = getch();
+        if(i==13)
+        main();
+        else 
+        user_panel();
+
+        
     }
 }
 
 // Takes the user-name and password .
-void login() {
+void login()
+{
     int i = 0;
     gotoxy(44, 10);
-    printf("Enter The Username : ");
-    scanf(" %[^\n]", id);
+    printf("Enter The UserID : ");
+    scanf(" %[^\n]",id);
     gotoxy(44, 12);
     printf("Enter The Password : ");
     scanf(" %[^\n]", password);
 }
 
 // verifies the user-name and password .
-int verify() {
-    char a;
-    if (m == 1) {
-        if ((strcmp(id, "admin") == 0 && strcmp(password, "admin") == 0)) {
-            gotoxy(38, 16);
-            printf("You Have Successfully Logged In : \" %s \" ", id);
-            gotoxy(44, 20);
-            printf("Press any key to continue .... ");
-            getch();
+int verify()
+{
+    FILE *f;
+    char a,x;
+    int num;
+    
+    int r;
+    if (m == 1)
+    {
+        // Admin verification logic
+        if ((strcmp(id, "admin") == 0 && strcmp(password, "admin") == 0))
+        {
+            // Admin login success
             return 1;
-        } else
+        }
+        else
+        {
+            // Admin login failed
             return 0;
-    } else if (m == 2) {
-        if (strcmp(id, "user") == 0 && strcmp(password, "user") == 0) {
-            gotoxy(38, 16);
-            printf("You Have Successfully Logged In : \" %s \" ", id);
-            gotoxy(44, 20);
-            printf("Press any key to continue .... ");
-            getch();
-            return 1;
-        } else
-            return 0;
+        }
+    }
+    else if (m == 2)
+    {
+        // User verification logic
+        f = fopen("record.bin", "rb");
+        while (fread(&rec, sizeof(rec), 1, f))
+        {
+            
+            for (r = 0; r < 10; r++)
+        {
+            int x = rec.UserID[r];            
+            tempID[r] = x;
+                       
+        }       
+        if ( check(tempID,user_id) && strcmp(rec.pass_word, user_pass) == 0)
+            {
+                // User login success
+                ver_account = rec.account;
+                
+                sleep(2);
+                fclose(f);
+                return 1;
+            }
+        }
+        // User login failed
+        fclose(f);
+        getch();
+        return 0;
     }
     return 0;
 }
 
 // displays the main user interface screen of program .
-void menu() {
+void menu()
+{
     system("CLS");
     gotoxy(48, 4);
     printf("WELCOME TO MAIN MENU");
@@ -201,8 +261,7 @@ void menu() {
     gotoxy(44, 12);
     printf("[5] . Search Customer Account");
     gotoxy(44, 13);
-    printf("[6] . Transaction");
-    gotoxy(44, 14);
+    
     printf("[7] . Log Out !!! ");
     gotoxy(44, 15);
     printf("[8] . About US ");
@@ -212,45 +271,46 @@ void menu() {
 }
 
 // takes user choice and goes to desired function .
-void option() {
+void option()
+{
     int i;
     scanf("%d", &i);
     system("CLS");
-    switch (i) {
-        case 1:
-            view();
-            break;
-        case 2:
-            add();
-            break;
-        case 3:
-            edit();
-            break;
-        case 4:
-            del();
-            break;
-        case 5:
-            search();
-        case 6:
-            transaction();
-            break;
-        case 7:
-            menuexit();
-            break;
-        case 8:
-            about();
-            break;
-        default:
-            menu();
+    switch (i)
+    {
+    case 1:
+        view();
+        break;
+    case 2:
+        add();
+        break;
+    case 3:
+        edit();
+        break;
+    case 4:
+        del();
+        break;
+    case 5:
+        search();
+    
+    case 7:
+        main();
+        break;
+    case 8:
+        about();
+        break;
+    default:
+        menu();
     }
 }
 
 // module for viewing account details
-void view() {
+void view()
+{
     int i = 7;
     struct record rec;
     FILE *f;
-    //rb = reading binary
+    // rb = reading binary
     f = fopen("record.bin", "rb");
     gotoxy(40, 3);
     printf("CUSTOMERS LIST");
@@ -271,13 +331,15 @@ void view() {
     // This reads the contents of a structure variable from the file and stores it in the variable rec.
     // The fread() function will keep returning 1 until there are records in the file.
     // As soon as the EOF is encountered fread() will return a value less than 1 and the condition in the while loop become false and the control comes out of the while loop.
-    while (fread(&rec, sizeof(rec), 1, f)) {
+    while (fread(&rec, sizeof(rec), 1, f))
+    {
         gotoxy(7, i);
         printf("%d", rec.account);
         gotoxy(13, i);
         printf("%s", rec.name);
         gotoxy(34, i);
-        for (r = 0; r < 10; r++) {
+        for (r = 0; r < 10; r++)
+        {
             printf("%d", rec.UserID[r]);
         }
         gotoxy(49, i);
@@ -295,22 +357,27 @@ void view() {
     printf("Press [Enter] to return back to main menu. ");
     x = getch();
     // 13 = '\r' i.e carriage return
-    if (x == 13) {
+    if (x == 13)
+    {
         menu();
-    } else
+    }
+    else
         view();
 }
 
-//module for adding accounts.
-void add() {
+// module for adding accounts.
+void add()
+{
+    int a = 0;
     char c;
     struct record rec;
     FILE *f;
-    //ab = append binary
+    // ab = append binary
     f = fopen("record.bin", "ab");
     int i = 0, x;
     // first we evaluate body and check condition
-    do {
+    do
+    {
         system("CLS");
         gotoxy(24, 4);
         printf("\t\t\tCUSTOMER ACCOUNT REGISTRATION");
@@ -335,19 +402,36 @@ void add() {
         gotoxy(36, 14);
         printf("[7] . Enter Amount To Deposit   : $");
         scanf(" %lf", &rec.blnc);
-        for (r = 0; r < 10; r++) {
-            rec.UserID[r] = rand() % 10;
+        srand(time(NULL));
+        for (r = 0; r < 10; r++)
+        {
+            a=0;
+            a = rand() % 10;
+            rec.UserID[r] = a;
         }
+            
+
+        gotoxy(36, 15);
+        printf("[8] . Enter password   : ");
+        scanf("%s", rec.pass_word);
         
+        
+
         rec.transaction_index = 0;
-	    
-        //fwrite() = for writing binary data
-        //This helps to write contents in a structure variable in the file and stores it in the variable rec.
+
+        // fwrite() = for writing binary data
+        // This helps to write contents in a structure variable in the file and stores it in the variable rec.
         fwrite(&rec, sizeof(rec), 1, f);
-        gotoxy(38, 17);
+        gotoxy(38,17);
+        printf("UserId : ");
+        for (r = 0; r < 10; r++)
+        {
+            printf("%d", rec.UserID[r]);
+        }
+        gotoxy(38, 19);
         printf("CUSTOMER ACCOUNT REGISTRATION SUCCESSFULL");
         i++;
-        gotoxy(36, 19);
+        gotoxy(36, 20);
         printf("Do You Want To Add Another Record ? (Y/N) : ");
         scanf(" %c", &c);
     } while (c == 'Y' || c == 'y');
@@ -355,20 +439,24 @@ void add() {
     gotoxy(40, 22);
     printf("Press any key to return back to main menu. ");
     char z = getch();
-    if (z == 13) {
+    if (z == 13)
+    {
         menu();
     }
 }
 
-//module to check whether the entered account is in the database or not
-int chkacc(int a) {
+// module to check whether the entered account is in the database or not
+int chkacc(int a)
+{
     FILE *f;
     f = fopen("record.bin", "rb");
-    //check whether we have reached end of file or not
-    while (!feof(f)) {
+    // check whether we have reached end of file or not
+    while (!feof(f))
+    {
         fread(&rec, sizeof(rec), 1, f);
 
-        if (a == rec.account) {
+        if (a == rec.account)
+        {
             fclose(f);
             return 1;
         }
@@ -378,7 +466,8 @@ int chkacc(int a) {
 }
 
 // module for editing details.
-void edit() {
+void edit()
+{
     FILE *x, *y;
     int a, c;
 // colon i.e ":" acts as id for goto function
@@ -388,13 +477,16 @@ re:
     gotoxy(43, 7);
     printf("Enter Your Account Number To Edit : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         x = fopen("record.bin", "rb");
         y = fopen("new.bin", "wb");
-        while (fread(&rec, sizeof(rec), 1, x)) {
+        while (fread(&rec, sizeof(rec), 1, x))
+        {
             if (rec.account != a)
                 fwrite(&rec, sizeof(rec), 1, y);
-            else if (rec.account == a) {
+            else if (rec.account == a)
+            {
                 gotoxy(52, 21);
                 printf("Account Number Matched. ");
                 gotoxy(51, 10);
@@ -423,7 +515,8 @@ re:
         fclose(x);
         fclose(y);
     }
-    if (chkacc(a) == 0) {
+    if (chkacc(a) == 0)
+    {
         system("CLS");
         gotoxy(52, 21);
         printf("Account Doesn't Exist. ");
@@ -439,8 +532,9 @@ re:
     menu();
 }
 
-//module for deleting account
-void del() {
+// module for deleting account
+void del()
+{
     FILE *x, *y;
     int a, c;
 re:
@@ -449,10 +543,12 @@ re:
     gotoxy(41, 9);
     printf("Enter Your Account Number To Delete : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         x = fopen("record.bin", "rb");
         y = fopen("new.bin", "wb");
-        while (fread(&rec, sizeof(rec), 1, x)) {
+        while (fread(&rec, sizeof(rec), 1, x))
+        {
             if (rec.account != a)
                 fwrite(&rec, sizeof(rec), 1, y);
         }
@@ -464,7 +560,9 @@ re:
             fwrite(&rec, sizeof(rec), 1, x);
         fclose(x);
         fclose(y);
-    } else if (chkacc(a) == 0) {
+    }
+    else if (chkacc(a) == 0)
+    {
         system("CLS");
         gotoxy(51, 15);
         printf("Account Doesn't Exist");
@@ -478,8 +576,9 @@ re:
     menu();
 }
 
-//module for searching account ( 2 types by number and name )
-void search() {
+// module for searching account ( 2 types by number and name )
+void search()
+{
     system("cls");
     int a;
     gotoxy(55, 4);
@@ -492,27 +591,36 @@ void search() {
     printf("Enter Your Choice [1-2] : ");
     scanf("%d", &a);
     system("cls");
-    if (a == 1) {
+    if (a == 1)
+    {
         search_acc();
-    } else if (a == 2) {
+    }
+    else if (a == 2)
+    {
         search_name();
-    } else
+    }
+    else
         menu();
 }
 
-void search_acc() {
+void search_acc()
+{
     FILE *f;
-    int a, x;
+    int a, x, y;
 re:
+    system("CLS");
     gotoxy(48, 4);
     printf(" SEARCH CUSTOMER ACCOUNT ");
     gotoxy(43, 7);
     printf("Enter Your Account Number To Search : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         f = fopen("record.bin", "rb");
-        while (fread(&rec, sizeof(rec), 1, f)) {
-            if (rec.account == a) {
+        while (fread(&rec, sizeof(rec), 1, f))
+        {
+            if (rec.account == a)
+            {
                 gotoxy(52, 21);
                 printf("Account Number Matched. User is Active.");
                 gotoxy(45, 10);
@@ -523,7 +631,8 @@ re:
                 printf("[2] . Name           : %s", rec.name);
                 gotoxy(37, 14);
                 printf("[3] . UserID         : ");
-                for (r = 0; r < 10; r++) {
+                for (r = 0; r < 10; r++)
+                {
                     printf("%d", rec.UserID[r]);
                 }
                 gotoxy(37, 15);
@@ -541,11 +650,30 @@ re:
         }
         fclose(f);
     }
-    if (chkacc(a) == 0) {
+    if (chkacc(a) == 0)
+    {
         system("CLS");
         gotoxy(52, 21);
         printf("Account Doesn't Exist. User is Inactive. ");
-        goto re;
+        gotoxy(52, 24);
+        printf("press anything ---> Retry, [2]---> Return Back, [3]---> Exit");
+
+        y = getch();
+        system("CLS");
+        switch (y)
+        {
+            case '2':
+                search();
+                break;
+            case '3':
+                main();
+                break;
+            default:
+                goto re;
+        }
+
+
+        
     }
     gotoxy(42, 24);
     printf("Press [ENTER] to return back to main menu. ");
@@ -556,7 +684,8 @@ re:
         search();
 }
 
-void search_name() {
+void search_name()
+{
     int i = 0, b, x;
     char nam[30];
     gotoxy(48, 4);
@@ -566,11 +695,13 @@ void search_name() {
     scanf(" %[^\n]", nam);
     FILE *f;
     f = fopen("record.bin", "rb");
-    while (fread(&rec, sizeof(rec), 1, f)) {
+    while (fread(&rec, sizeof(rec), 1, f))
+    {
         b = 0;
         strupr(rec.name);
         strupr(nam);
-        if (strcmp(rec.name, nam) == 0) {
+        if (strcmp(rec.name, nam) == 0)
+        {
             gotoxy(52, 21);
             printf("Account Number Matched. User is Active.");
             gotoxy(45, 10);
@@ -581,7 +712,8 @@ void search_name() {
             printf("[2] . Name           : %s", rec.name);
             gotoxy(37, 14);
             printf("[3] . UserID         : ");
-            for (r = 0; r < 10; r++) {
+            for (r = 0; r < 10; r++)
+            {
                 printf("%d", rec.UserID[r]);
             }
             gotoxy(37, 15);
@@ -594,12 +726,16 @@ void search_name() {
             printf("[7] . Citizenship No : %s", rec.citiz);
             gotoxy(37, 19);
             printf("[8] . Current Balance: $%.2lf", rec.blnc);
+            gotoxy(37, 20);
+            printf("[9] . Password: %s", rec.pass_word);
             break;
-        } else
+        }
+        else
             b = 1;
     }
     fclose(f);
-    if (b == 1) {
+    if (b == 1)
+    {
         system("cls");
         gotoxy(52, 21);
         printf("Account Doesn't Exist. User is Inactive.");
@@ -615,7 +751,8 @@ void search_name() {
 }
 
 // displays screen for the transaction options and takes the user choice .
-void transaction() {
+void transaction()
+{
     system("CLS");
     gotoxy(48, 4);
     printf(" TRANSACTION MENU ");
@@ -625,10 +762,13 @@ void transaction() {
     printf("[2] . Cash Deposit");
     gotoxy(49, 11);
     printf("[3] . Cash Withdrawal");
-    if (m == 1) {
+    if (m == 1)
+    {
         gotoxy(49, 12);
         printf("[4] . Main Menu");
-    } else {
+    }
+    else
+    {
         gotoxy(49, 12);
         printf("[4] . Exit");
     }
@@ -636,32 +776,35 @@ void transaction() {
     printf("Please Enter Your Choice [1-4] : ");
     int a;
     scanf("%d", &a);
-    switch (a) {
-        case 1:
-            system("cls");
-            print_transaction_history();
-            break;
-        case 2:
-            system("cls");
-            deposit();
-            break;
-        case 3:
-            system("cls");
-            withdrawl();
-            break;
-        case 4:
-            if (m == 1)
-                menu();
-            else
-                menuexit();
-            break;
-        default:
-            transaction();
+    switch (a)
+    {
+    case 1:
+        system("cls");
+        print_transaction_history(ver_account);
+        break;
+    case 2:
+        system("cls");
+        deposit();
+        break;
+    case 3:
+        system("cls");
+        withdrawl();
+        break;
+    case 4:
+        if (m == 1)
+            menu();
+        else
+            menuexit();
+        break;
+    default:
+        transaction();
     }
 }
 
+
 // module for checking account balance and displaying it
-void chkblnc() {
+void chkblnc()
+{
     FILE *f;
     int a;
     gotoxy(48, 4);
@@ -669,17 +812,21 @@ void chkblnc() {
     gotoxy(47, 12);
     printf("Enter Your Account Number : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         f = fopen("record.bin", "rb");
-        while (fread(&rec, sizeof(rec), 1, f)) {
-            if (rec.account == a) {
+        while (fread(&rec, sizeof(rec), 1, f))
+        {
+            if (rec.account == a)
+            {
                 gotoxy(50, 15);
                 printf("Your Balance is : $%.2lf", rec.blnc);
             }
         }
         fclose(f);
     }
-    if (chkacc(a) == 0) {
+    if (chkacc(a) == 0)
+    {
         system("cls");
         gotoxy(52, 15);
         printf("Account Doesn't Exist.");
@@ -691,8 +838,9 @@ void chkblnc() {
     transaction();
 }
 
-// module for adding amount to a account
-void deposit() {
+
+void deposit()
+{
     int a;
     double b;
     FILE *x, *y;
@@ -701,13 +849,16 @@ void deposit() {
     gotoxy(47, 10);
     printf("Enter Your Account Number : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         x = fopen("record.bin", "rb");
         y = fopen("new.bin", "wb");
-        while (fread(&rec, sizeof(rec), 1, x)) {
+        while (fread(&rec, sizeof(rec), 1, x))
+        {
             if (rec.account != a)
                 fwrite(&rec, sizeof(rec), 1, y);
-            else if (rec.account == a) {
+            else if (rec.account == a)
+            {
                 rec.name;
                 rec.account;
                 rec.phone;
@@ -718,7 +869,7 @@ void deposit() {
                 printf("Enter The Amount To Deposit : $ ");
                 scanf("%lf", &b);
                 rec.blnc += b;
-                
+
                 // Update transaction history
                 strcpy(rec.transactions[rec.transaction_index].type, "Deposit");
                 rec.transactions[rec.transaction_index].amount = b;
@@ -726,7 +877,7 @@ void deposit() {
                 time(&now);
                 strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
                 rec.transaction_index++;
-                
+
                 fwrite(&rec, sizeof(rec), 1, y);
             }
         }
@@ -739,7 +890,8 @@ void deposit() {
         fclose(x);
         fclose(y);
     }
-    if (chkacc(a) == 0) {
+    if (chkacc(a) == 0)
+    {
         system("CLS");
         gotoxy(52, 21);
         printf("Account Doesn't Exist. ");
@@ -753,9 +905,9 @@ void deposit() {
     getch();
     transaction();
 }
-
 // module to withdraw amount from account
-void withdrawl() {
+void withdrawl()
+{
     FILE *x, *y;
     int a;
     double b, z;
@@ -764,16 +916,19 @@ void withdrawl() {
     gotoxy(45, 10);
     printf("Enter Your Account Number : ");
     scanf("%d", &a);
-    if (chkacc(a) == 1) {
+    if (chkacc(a) == 1)
+    {
         x = fopen("record.bin", "rb");
         y = fopen("new.bin", "wb");
         gotoxy(42, 13);
         printf("Enter The Amount To Withdraw : $ ");
         scanf("%lf", &b);
-        while (fread(&rec, sizeof(rec), 1, x)) {
+        while (fread(&rec, sizeof(rec), 1, x))
+        {
             if (rec.account != a)
                 fwrite(&rec, sizeof(rec), 1, y);
-            else if (rec.account == a) {
+            else if (rec.account == a)
+            {
                 rec.name;
                 rec.account;
                 rec.phone;
@@ -781,12 +936,13 @@ void withdrawl() {
                 rec.email;
                 rec.citiz;
                 z = rec.blnc;
-                if (b <= rec.blnc) {
+                if (b <= rec.blnc)
+                {
                     rec.blnc -= b;
                     gotoxy(44, 21);
                     printf("    CASH WITHDRAWAL SUCCESSFULL     ");
                 }
-                
+
                 // Update transaction history
                 strcpy(rec.transactions[rec.transaction_index].type, "Withdrawal");
                 rec.transactions[rec.transaction_index].amount = b;
@@ -794,7 +950,7 @@ void withdrawl() {
                 time(&now);
                 strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
                 rec.transaction_index++;
-                
+
                 fwrite(&rec, sizeof(rec), 1, y);
             }
         }
@@ -802,16 +958,18 @@ void withdrawl() {
         fclose(y);
         remove("record.bin");
         rename("new.bin", "record.bin");
-        if (z < b) {
+        if (z < b)
+        {
             system("CLS");
             gotoxy(48, 21);
             printf("Current Balance is $%.2lf", z);
             gotoxy(42, 24);
             printf("Entered amount exceeds current balance");
-            withdrawl();
+            transaction();
         }
     }
-    if (chkacc(a) == 0) {
+    if (chkacc(a) == 0)
+    {
         system("CLS");
         gotoxy(50, 21);
         printf("Account Doesn't Exist.");
@@ -824,8 +982,9 @@ void withdrawl() {
     transaction();
 }
 
-//module for logging out of the program.
-void menuexit() {
+// module for logging out of the program.
+void menuexit()
+{
     system("cls");
     gotoxy(48, 10);
     printf("!!! THANK YOU !!!");
@@ -836,17 +995,667 @@ void menuexit() {
     exit(0);
 }
 
-void about() {
-    gotoxy(48,10);
+void about()
+{
+    gotoxy(48, 10);
     printf("!!!ABOUT US!!!");
-    gotoxy(32,12);
+    gotoxy(32, 12);
     printf("This project has been created by Aman Khadka.");
-    gotoxy(10,13);
+    gotoxy(10, 13);
     printf("It is a Simple Bank Management System Project for my 1st Semester based on C programming language.");
     gotoxy(40, 22);
     printf("Press any key to return back to main menu. ");
     char z = getch();
-    if (z == 13) {
+    if (z == 13)
+    {
+        if(m==1)
         menu();
+        else
+        user_menu();
     }
 }
+
+void user_login()
+{
+    int i = 0;
+    gotoxy(44, 10);
+    printf("Enter The UserID : ");
+    while ((getchar()) != '\n');
+    fgets(input, sizeof(input), stdin);
+    
+    if(strlen(input) != 11)
+    {
+        printf("Invalid input. Please enter a 10-digit number.\n");
+        sleep(2);
+        user_login();
+    }
+
+    input[strlen(input) - 1] = '\0';
+
+    for (int i = 0; i < 10; i++) 
+    {
+        user_id[i] = input[i] - '0';
+    }
+     
+    gotoxy(44, 12);
+    printf("Enter The Password : ");
+    scanf(" %[^\n]", user_pass);
+}
+
+void user_menu()
+{
+    system("CLS");
+    gotoxy(48, 4);
+    printf("WELCOME TO USER MENU");
+    gotoxy(44, 8);
+    printf("[1] . View Account Details");
+    gotoxy(44, 9);
+    printf("[2] . Transaction");
+    gotoxy(44, 10);
+    printf("[3] . Check Balance");
+    gotoxy(44, 11);
+    printf("[4] . Log Out !!! ");
+    gotoxy(44, 12);
+    printf("[5] . About US ");
+    gotoxy(43, 16);
+    printf("Please Enter Your Choice [1-5] : ");
+    option_user(); // Handle user's choice in the user menu
+}
+void option_user()
+{
+    int i;
+    scanf("%d", &i);
+    system("CLS");
+    switch (i)
+    {
+    case 1:
+        user_name_search(ver_account);
+        break;
+    case 2:
+        user_transaction();
+        break;
+    case 3:
+        user_chkblnc( ver_account);
+        break;
+    case 4:
+        main();
+        break;
+    case 5:
+        about();
+        break;
+    default:
+        user_menu();
+    }
+}
+void chkblnc_user(char*id)
+{
+    FILE *f;
+    int a;
+    gotoxy(48, 4);
+    printf(" BALANCE INQUIRY ");
+    f = fopen("record.bin", "rb");
+        while (fread(&rec, sizeof(rec), 1, f))
+        {
+            if (rec.name == id)
+            {
+                gotoxy(50, 15);
+                printf("Your Balance is : $%.2lf", rec.blnc);
+            }
+            
+            
+        }
+        fclose(f);
+        gotoxy(46, 21);
+    printf("Press any key to return back to main menu. ");
+    getch();
+    user_menu();
+
+
+}
+void print_transaction_history(int ver_account) {
+    int h = 0;
+    FILE *f;
+    f = fopen("record.bin", "rb");
+    if (f == NULL) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    struct record rec;
+    int found = 0;
+    while (fread(&rec, sizeof(rec), 1, f)) {
+        if (rec.account == ver_account) 
+        {
+            found = 1;
+            printf("Transaction History for Account Number %d:\n", rec.account);
+            printf("--------------------------------------------------\n");
+            printf("%-15s %-10s %-20s\n", "Type", "Amount", "Date");
+            printf("--------------------------------------------------\n");
+            int start_index = (rec.transaction_index > 10) ? rec.transaction_index - 10 : 0;
+            for (int i = start_index; i < rec.transaction_index && i < start_index + 10 ; i++) {
+                printf("\n\n%-15s $%-9.2lf %-20s\n", rec.transactions[i].type, rec.transactions[i].amount, rec.transactions[i].date);
+            }
+            printf("--------------------------------------------------\n");
+            fclose(f);
+            printf("\n\n\n\n\n\n\n\n\n");
+            printf("Enter 1 to go back: ");
+            scanf("%d", &h);
+            if (h == 1)
+                user_transaction();
+            else
+                print_transaction_history(ver_account);
+        }
+    }
+
+    if (!found) {
+        printf("Account number not found.\n");
+        fclose(f);
+        sleep(3);
+        user_transaction();
+    }
+}
+
+void user_name_search(int ver_account)
+{
+    int i = 0, b, x;
+    FILE *f;
+    f = fopen("record.bin", "rb");
+    while (fread(&rec, sizeof(rec), 1, f))
+    {
+        b = 0;
+        if (rec.account == ver_account)
+        {
+            gotoxy(52, 21);
+            printf("Account Number Matched. User is Active.");
+            gotoxy(45, 10);
+            printf("Detail Information of %s", rec.name);
+            gotoxy(37, 12);
+            printf("[1] . Account Number : %d", rec.account);
+            gotoxy(37, 13);
+            printf("[2] . Name           : %s", rec.name);
+            gotoxy(37, 14);
+            printf("[3] . UserID         : ");
+            for (r = 0; r < 10; r++)
+            {
+                printf("%d", rec.UserID[r]);
+            }
+            gotoxy(37, 15);
+            printf("[4] . Phone Number   : %s", rec.phone);
+            gotoxy(37, 16);
+            printf("[5] . Address        : %s", rec.address);
+            gotoxy(37, 17);
+            printf("[6] . E-mail         : %s", rec.email);
+            gotoxy(37, 18);
+            printf("[7] . Citizenship No : %s", rec.citiz);
+            gotoxy(37, 19);
+            printf("[8] . Current Balance: $%.2lf", rec.blnc);
+            gotoxy(37, 20);
+            printf("[9] . Password: %s", rec.pass_word);
+             break;
+        }
+        else
+            b = 1;
+    }
+    fclose(f);
+    if (b == 1)
+    {
+        system("cls");
+        gotoxy(52, 21);
+        printf("Account Doesn't Exist. User is Inactive.");
+        user_name_search(ver_account);
+    }
+    gotoxy(42, 24);
+    printf("Press [ENTER] to return back to user menu. ");
+    char z = getch();
+    if (z == 13)
+        user_menu();
+    else
+        user_name_search(ver_account);
+}
+void user_transaction()
+{
+    system("CLS");
+    gotoxy(48, 4);
+    printf(" TRANSACTION MENU ");
+    
+    if (m == 2)
+    {
+        gotoxy(49, 9);
+        printf("[1] . Balance Inquiry");
+        gotoxy(49, 10);
+        printf("[2] . Cash Deposit");
+        gotoxy(49, 11);
+        printf("[3] . Cash Withdrawal");
+        gotoxy(49, 12);
+        printf("[4] . History");
+        gotoxy(49, 13);
+        printf("[5] . Main Menu");
+    }
+    else
+    {
+        gotoxy(49, 13);
+        printf("[5] . Exit");
+    }
+    gotoxy(49, 13);
+    printf("[6] .  Transfer");
+    gotoxy(45, 17);
+    printf("Please Enter Your Choice [1-5] : ");
+    int a;
+    scanf("%d", &a);
+    switch (a)
+    {
+    case 1:
+        system("cls");
+        print_transaction_history(ver_account);
+        break;
+    case 2:
+        system("cls");
+        user_deposit(ver_account);
+        break;
+    case 3:
+        system("cls");
+        user_withdrawl(ver_account);
+        break;
+
+    case 4:
+        system("cls");
+        print_transaction_history(ver_account);
+        break;    
+    case 5:
+        if (m == 1)
+            menu();
+        else
+            main();
+        break;
+    case 6:
+        transfer();
+    default:
+        transaction();
+    }
+}
+void user_deposit(int ver_account)
+{
+    int a;
+    double b;
+    FILE *x, *y;
+    int deposit_done = 0; 
+    
+    gotoxy(54, 4);
+    printf(" CASH DEPOSIT ");
+    
+    x = fopen("record.bin", "rb");
+    if (x == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+    
+    y = fopen("new.bin", "wb");
+    if (y == NULL) {
+        printf("Error creating file!\n");
+        fclose(x);
+        return;
+    }
+    
+    while (fread(&rec, sizeof(rec), 1, x))
+    {
+        if (rec.account == ver_account)
+        {
+            // Deposit operation
+            rec.name;
+            rec.account;
+            rec.phone;
+            rec.address;
+            rec.email;
+            rec.citiz;
+            gotoxy(45, 13);
+            printf("Enter amount : ");
+            scanf("%lf", &b);
+            rec.blnc += b;
+            printf("CASH DEPOSIT SUCCESSFULL\n");
+            // Update transaction history
+            strcpy(rec.transactions[rec.transaction_index].type, "Deposit");
+            rec.transactions[rec.transaction_index].amount = b;
+            time_t now;
+            time(&now);
+            strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
+            rec.transaction_index++;
+            
+            deposit_done = 1; // Set the flag to indicate deposit is done
+        }
+        // Write the record to the new file
+        fwrite(&rec, sizeof(rec), 1, y);
+    }
+    
+    if (!deposit_done)
+    {
+        // The deposit operation wasn't performed, so inform the user
+        printf("User not found or deposit already made.\n");
+    }
+    
+    fclose(x);
+    fclose(y);
+    
+    x = fopen("record.bin", "wb");
+    if (x == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+    
+    y = fopen("new.bin", "rb");
+    if (y == NULL) {
+        printf("Error opening file!\n");
+        fclose(x);
+        return;
+    }
+    
+    while (fread(&rec, sizeof(rec), 1, y))
+    {
+        fwrite(&rec, sizeof(rec), 1, x);
+    }
+    
+    fclose(x);
+    fclose(y);
+    
+   
+    gotoxy(50, 24);
+    printf("Press any key to return back...");
+    getch();
+    user_transaction();
+}
+void user_withdrawl(int ver_account)
+{
+    FILE *x, *y;
+    int a;
+    double b, z;
+    gotoxy(54, 4);
+    printf(" CASH WITHDRAWAL ");
+
+        x = fopen("record.bin", "rb");
+        y = fopen("new.bin", "wb");
+        gotoxy(42, 13);
+        printf("Enter The Amount To Withdraw : $ ");
+        scanf("%lf", &b);
+        while (fread(&rec, sizeof(rec), 1, x))
+        {
+            if (rec.account != ver_account)
+                fwrite(&rec, sizeof(rec), 1, y);
+            else if (rec.account == ver_account)
+            {
+                rec.name;
+                rec.account;
+                rec.phone;
+                rec.address;
+                rec.email;
+                rec.citiz;
+                z = rec.blnc;
+                if (b <= rec.blnc)
+                {
+                    rec.blnc -= b;
+                    gotoxy(44, 21);
+                    printf("    CASH WITHDRAWAL SUCCESSFULL     ");
+                }
+
+                // Update transaction history
+                strcpy(rec.transactions[rec.transaction_index].type, "Withdrawal");
+                rec.transactions[rec.transaction_index].amount = b;
+                time_t now;
+                time(&now);
+                strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
+                rec.transaction_index++;
+
+                fwrite(&rec, sizeof(rec), 1, y);
+            }
+        
+        fclose(x);
+        fclose(y);
+        remove("record.bin");
+        rename("new.bin", "record.bin");
+        if (z < b)
+        {
+            system("CLS");
+            gotoxy(48, 21);
+            printf("Current Balance is $%.2lf", z);
+            gotoxy(42, 24);
+            printf("Entered amount exceeds current balance");
+            user_withdrawl(ver_account);
+        }
+    }
+    
+    gotoxy(42, 24);
+    printf("     Press Any Key To Continue ....   ");
+    getch();
+    user_transaction();
+}
+void user_chkblnc(int ver_account)
+{
+    FILE *f;
+    int a;
+    gotoxy(48, 4);
+    printf(" BALANCE INQUIRY ");
+    
+        f = fopen("record.bin", "rb");
+        while (fread(&rec, sizeof(rec), 1, f))
+        {
+            if (rec.account == ver_account)
+            {
+                gotoxy(50, 15);
+                printf("Your Balance is : $%.2lf", rec.blnc);
+            }
+        }
+        fclose(f);
+    
+    
+    gotoxy(46, 21);
+    printf("Press any key to return back to main menu. ");
+    getch();
+    user_menu();
+}
+
+int check (int*user_id,int*tempID)
+{
+    
+    for(int i=0;i<10;i++)
+    {
+        if(user_id[i]==tempID[i])
+        {
+            continue;
+        }
+        else if(user_id[i]!=tempID[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int check_userID_loan()
+{
+    int i = 0;
+    gotoxy(44, 10);
+
+    printf("Enter account no to transfer : ");
+
+    while ((getchar()) != '\n');
+    fgets(loan_input, sizeof(loan_input), stdin);
+    
+    if(strlen(loan_input) != 11)
+    {
+        printf("Invalid input. Please enter a 10-digit number.\n");
+        sleep(2);
+        check_userID_loan();
+    }
+
+    input[strlen(loan_input) - 1] = '\0';
+
+    for (int i = 0; i < 10; i++) 
+    {
+        loan_id[i] = loan_input[i] - '0';
+    }
+
+    FILE *ptr;
+    ptr = fopen("record.bin", "rb");
+    if(ptr == NULL){
+        printf("Error opening file!\n");
+        return 0;
+    }
+    while (fread(&rec, sizeof(rec), 1, ptr))
+    {
+        for (r = 0; r < 10; r++)
+        {
+            int x = rec.UserID[r];            
+            temp_loanID[r] = x;              
+        }
+
+         for (r = 0; r < 10; r++)
+        {
+            printf("%d",loan_id[r]);                                    
+        }
+        printf("::::::");
+        for (r = 0; r < 10; r++)
+        {
+            printf("%d",temp_loanID[r]);
+        }
+        getch();
+        if (check(loan_id,temp_loanID))
+        {
+            printf("\n\n\nAccount Found");
+            fclose(ptr);
+            getch();
+            return 1;
+        }
+        if(!check(loan_id,temp_loanID))
+        {
+            continue;           
+        }
+    
+}
+return 0;
+}
+
+void transfer()
+{
+    system("cls");
+    double amount;
+    
+    gotoxy(54, 4);
+    printf("Transfer");
+   
+    if(check_userID_loan())
+    {
+        printf("Enter Transfer Amount : ");
+        scanf("%lf",&amount);
+
+        FILE *x1;
+        x1 = fopen("record.bin", "rb");
+        if(x1 == NULL)
+    {
+        printf("Error opening file!\n");
+        return;
+    }
+        FILE *y1;
+    y1 = fopen("new.bin", "wb");
+    if(y1 == NULL){
+        printf("Error opening file!\n");
+        return;
+    }
+
+        while (fread(&rec, sizeof(rec), 1, x1))
+        {
+            if(rec.account != ver_account)
+            fwrite(&rec, sizeof(rec), 1, y1);
+
+            if (rec.account == ver_account)
+        {
+            if(rec.blnc>=amount)
+        {
+            rec.blnc -= amount;
+            gotoxy(44, 21);
+            printf("    TRANSFER SUCCESSFULL     \n\n");
+            printf("%lf",rec.blnc);
+            getch();
+
+
+            strcpy(rec.transactions[rec.transaction_index].type, "Transfer(Out)");
+            rec.transactions[rec.transaction_index].amount = amount;
+            time_t now;
+            time(&now);
+            strcpy(rec.transactions[rec.transaction_index].date, ctime(&now));
+            rec.transaction_index++;
+            fwrite(&rec, sizeof(rec), 1, y1);
+            
+            sleep(2);
+            user_menu();
+
+        }
+        else
+        {
+            gotoxy(44, 21);
+            printf("   INSUFFICIENT BALANCE    ");
+            sleep(2);
+            user_menu();
+        }
+        
+    }
+    
+    }
+    
+    fclose(x1);
+    fclose(y1);
+    remove("record.bin");
+    rename("new.bin","record.bin");
+
+
+    FILE *x2;
+        x2 = fopen("record.bin", "rb");
+        if(x2 == NULL)
+    {
+        printf("Error opening file!\n");
+        return;
+    }
+    FILE *y2;
+    y2 = fopen("new.bin", "wb");
+    if(y2 == NULL){
+        printf("Error opening file!\n");
+        return;
+    }
+
+    while (fread(&rec, sizeof(rec), 1, x2))
+    {
+             for (r = 0; r < 10; r++)
+        {
+            int x = rec.UserID[r];            
+            temp_loanID[r] = x;                      
+        }
+        if(check(temp_loanID,loan_id))
+            {
+                rec.blnc += amount;
+                fwrite(&rec, sizeof(rec), 1, y2);
+            }
+        else
+        {
+           fwrite(&rec, sizeof(rec), 1, y2);
+        }
+
+    
+    }
+    fclose(x2);
+    fclose(y2);
+
+    remove("record.bin");
+    rename("new.bin","record.bin");
+
+
+ 
+}
+else
+{
+    printf("\n\n\n\nAccount not found");
+    sleep(2);
+    user_transaction();
+}
+
+
+
+}
+
+
